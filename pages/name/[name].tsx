@@ -1,21 +1,20 @@
+import { useEffect, useState } from 'react'
+import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
+import { Grid, Card, Button, Container, Text, Image } from '@nextui-org/react';
 
-import { useState } from 'react';
-import { GetStaticProps, GetStaticPaths, NextPage } from 'next';
-import { Button, Card, Container, Grid, Image, Text } from '@nextui-org/react';
 import confetti from 'canvas-confetti';
 
-import { Layout } from '../../comonents/layouts'
-import { Pokemon } from '../../interfaces';
 import { pokeApi } from '../../api';
 import { getPokemonInfo, localFavorite } from '../../utils';
+import { Pokemon, PokemonListResponse } from '../../interfaces';
+import { Layout } from '../../comonents/layouts';
 
 interface Props {
-  pokemon: Pokemon
+  pokemon: Pokemon;
 }
 
-export const PokemonPage:NextPage<Props> = ({ pokemon }) => {
-
-  const [isInFavorites, setIsInFavorites] = useState( localFavorite.existInFavorites( pokemon.id ) );
+export const PokemonNamePage: NextPage<Props> = ({ pokemon }) => {
+  const [isInFavorites, setIsInFavorites] = useState(false);
 
   const onToggleFavorite = () => {
     localFavorite.toggleFavorite(pokemon.id);
@@ -34,6 +33,11 @@ export const PokemonPage:NextPage<Props> = ({ pokemon }) => {
       }
     })
   }
+
+  useEffect(() => {
+    setIsInFavorites(localFavorite.existInFavorites( pokemon.id ))
+  }, [])
+  
 
   return (
     <Layout title={ pokemon.name }>
@@ -62,6 +66,7 @@ export const PokemonPage:NextPage<Props> = ({ pokemon }) => {
                       color="gradient" 
                       onPress={ onToggleFavorite }
                       ghost={ !isInFavorites}
+        
                     >
                       { isInFavorites ? 'En Favoritos' : 'Guardar en Favoritos'}
                     </Button>
@@ -99,11 +104,12 @@ export const PokemonPage:NextPage<Props> = ({ pokemon }) => {
 
 export const getStaticPaths: GetStaticPaths = async (ctx) => {
 
-  const pokemons151: string[] = [...Array(151)].map( (_, index) => `${ index + 1 }`);
+  const { data } = await pokeApi.get<PokemonListResponse>('/pokemon?limit=151');
+  const pokemonNames: string[] = data.results.map( pokemon => pokemon.name );
 
   return {
-    paths: pokemons151.map( id => ({
-      params: { id }
+    paths: pokemonNames.map( name => ({
+      params: { name }
     })),
     fallback: false
   }
@@ -111,13 +117,13 @@ export const getStaticPaths: GetStaticPaths = async (ctx) => {
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   
-  const { id } = params as { id: string };
-  
+  const { name } = params as { name: string };
+ 
   return {
     props: {
-      pokemon: await getPokemonInfo( id )
+      pokemon: await getPokemonInfo( name )
     }
   }
 }
 
-export default PokemonPage;
+export default PokemonNamePage;
